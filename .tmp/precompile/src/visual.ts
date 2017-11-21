@@ -1,45 +1,56 @@
 module powerbi.extensibility.visual.powerBIVisual1D28CB10BD8040A98F545F6699A510D2  {
     "use strict";
-    export class Visual implements IVisual {
-        private target: HTMLElement;
-        private updateCount: number;
-        private settings: VisualSettings;
-        private textNode: Text;
 
-        constructor(options: VisualConstructorOptions) {
-            console.log('Visual constructor', options);
-            this.target = options.element;
-            this.updateCount = 0;
-            if (typeof document !== "undefined") {
-                const new_p: HTMLElement = document.createElement("p");
-                new_p.appendChild(document.createTextNode("Update count:"));
-                const new_em: HTMLElement = document.createElement("em");
-                this.textNode = document.createTextNode(this.updateCount.toString());
-                new_em.appendChild(this.textNode);
-                new_p.appendChild(new_em);
-                this.target.appendChild(new_p);
-            }
-        }
+    interface DataPoint {
+        event: string;
+        timeStamp: Date;
+    };
+
+    interface ViewModel {
+        dataPoints: DataPoint[];
+        maxTimeStamp: Date;
+    };
+
+    export class Visual implements IVisual {
 
         public update(options: VisualUpdateOptions) {
-            this.settings = Visual.parseSettings(options && options.dataViews && options.dataViews[0]);
-            console.log('Visual update', options);
-            if (typeof this.textNode !== "undefined") {
-                this.textNode.textContent = (this.updateCount++).toString();
+
+            let viewModel = this.getViewModel(options);
+
+        }
+
+
+        private getViewModel(options: VisualUpdateOptions): ViewModel {
+
+            let dv = options.dataViews;
+
+            let viewModel: ViewModel = {
+                dataPoints: [],
+                maxTimeStamp: new Date("January 1, 2000 12:00:00")
+            };
+
+            if (!dv
+                || !dv[0]
+                || !dv[0].categorical
+                || !dv[0].categorical.categories
+                || !dv[0].categorical.categories[0].source
+                || !dv[0].categorical.values)
+                return viewModel;
+
+            let view = dv[0].categorical;
+            let categories = view.categories[0];
+            let values = view.values[0];
+
+            for (let i = 0, len = Math.max(categories.values.length, values.values.length); i < len; i++) {
+                viewModel.dataPoints.push({
+                    event: <string>categories.values[i],
+                    timeStamp: <Date>values.values[i]
+                });
             }
-        }
 
-        private static parseSettings(dataView: DataView): VisualSettings {
-            return VisualSettings.parse(dataView) as VisualSettings;
-        }
+            viewModel.maxTimeStamp = d3.max(viewModel.dataPoints, d => d.timeStamp);
 
-        /** 
-         * This function gets called for each of the objects defined in the capabilities files and allows you to select which of the 
-         * objects and properties you want to expose to the users in the property pane.
-         * 
-         */
-        public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[] | VisualObjectInstanceEnumerationObject {
-            return VisualSettings.enumerateObjectInstances(this.settings || VisualSettings.getDefault(), options);
+            return viewModel;
         }
     }
 }
