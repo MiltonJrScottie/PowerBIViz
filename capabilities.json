@@ -1,12 +1,12 @@
 {
     "dataRoles": [
         {
-            "displayName": "Event",
+            "displayName": "TimeStamp",
             "name": "category",
             "kind": "Grouping"
         },
         {
-            "displayName": "TimeStamp",
+            "displayName": "Event",
             "name": "measure",
             "kind": "Measure"
         }
