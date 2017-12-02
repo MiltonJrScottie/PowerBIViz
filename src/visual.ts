@@ -1,9 +1,14 @@
+import DataViewObjects = powerbi.extensibility.utils.dataview.DataViewObjects;
+
 module powerbi.extensibility.visual {
     "use strict";
 
     interface DataPoint {
         event: string;
         timeStamp: Date;
+        color: string;
+        identity: powerbi.visuals.ISelectionId;
+        highlighted: boolean;
     };
 
     interface ViewModel {
@@ -12,6 +17,7 @@ module powerbi.extensibility.visual {
     };
 
     export class Visual implements IVisual {
+        private host: IVisualHost;
         private svg: d3.Selection<SVGElement>;
         private container: d3.Selection<SVGElement>;
         private horizontalLine: d3.Selection<SVGElement>;
@@ -20,7 +26,8 @@ module powerbi.extensibility.visual {
 		private verticalLine:d3.Selection<SVGElement>;
         private labelBoxes:d3.Selection<SVGElement>;
         private labelText:d3.Selection<SVGElement>;
-        private secondEvent:d3.Selection<SVGElement>;
+        private secondEvent: d3.Selection<SVGElement>;
+        private viewModel: ViewModel;
 
         constructor(options: VisualConstructorOptions) {
 			let svg=this.svg=d3.select(options.element)
@@ -76,6 +83,8 @@ module powerbi.extensibility.visual {
        
 
         public update(options: VisualUpdateOptions) {
+
+            this.viewModel = this.getViewModel(options);
             
             let viewportWidth=options.viewport.width;
             let viewportHeight=options.viewport.height;
@@ -93,7 +102,14 @@ module powerbi.extensibility.visual {
             
             let viewModel = this.getViewModel(options);
             let ratioArray=this.getDateRatio(options);
-            let datesArray=options.dataViews[0].categorical.categories[0].values;
+            let datesArray = options.dataViews[0].categorical.categories[0].values;
+
+            this.eventDate.selectAll("text").remove()
+            this.labelBoxes.selectAll("rect").remove()
+            this.labelText.selectAll("text").remove()
+            this.verticalLine.selectAll("line").remove()
+            this.eventName.selectAll("text").remove()
+            this.secondEvent.selectAll("text").remove()
             
             
             this.svg
@@ -108,7 +124,7 @@ module powerbi.extensibility.visual {
             .attr("y2", viewportHeight / 1.5)
             .style("stroke",lineColor);
 
-            this.labelBoxes.selectAll("rect").remove()
+            this.labelBoxes.selectAll("rect")
             .data(totalElements)
             .enter()
                     .append("rect")
@@ -137,7 +153,7 @@ module powerbi.extensibility.visual {
                         return colors[i];
                     })
             
-            this.labelText.selectAll("text").remove()
+            this.labelText.selectAll("text")
                 .data(totalElements)
                 .enter()
                 .append("text")
@@ -171,7 +187,7 @@ module powerbi.extensibility.visual {
 
           
          
-          this.verticalLine.selectAll("line").remove()
+          this.verticalLine.selectAll("line")
 				.data(ratioArray)
 				.enter()
 					.append("line")                                     //Vertical lines
@@ -210,7 +226,7 @@ module powerbi.extensibility.visual {
                     var event:string[];
                     var partEvent=[""];
                   
-            this.eventName.selectAll("text").remove()
+            this.eventName.selectAll("text")
                     .data(viewModel.dataPoints)
                     .enter()
                         .append("text")
@@ -260,7 +276,7 @@ module powerbi.extensibility.visual {
                         .style("font-weight","bold")
                     
 
-                      this.secondEvent.selectAll("text").remove()
+                      this.secondEvent.selectAll("text")
                         .data(partEvent)
                         .enter()
                             .append("text")
@@ -286,10 +302,11 @@ module powerbi.extensibility.visual {
                             .attr("font-size",fontSize)
                             .style("fill", eventColors)
                             .style("background", "red")
-                            .style("font-weight","bold") 
+                            .style("font-weight", "bold")
+                            
 
 
-                this.eventDate.selectAll("text").remove()
+                this.eventDate.selectAll("text")
                         .data(viewModel.dataPoints)
                         .enter()
                             .append("text")
@@ -351,17 +368,56 @@ module powerbi.extensibility.visual {
             let view = dv[0].categorical;
             let categories = view.categories[0];
             let values = view.values[0];
+            let objects = categories.objects;
+            let highlights = values.highlights;
 
             for (let i = 0, len = Math.max(categories.values.length, values.values.length); i < len; i++) {
                 viewModel.dataPoints.push({
                     event: <string>values.values[i],
-                    timeStamp: <Date>categories.values[i]
+                    timeStamp: <Date>categories.values[i],
+
+                    color: objects && objects[i] && DataViewObjects.getFillColor(objects[i], {
+                        objectName: "dataColors",
+                        propertyName: "fill"
+                    }, null) || this.host.colorPalette.getColor(<string>categories.values[i]).value,
+
+                    identity: this.host.createSelectionIdBuilder()
+                        .withCategory(categories, i)
+                        .createSelectionId(),
+                    highlighted: highlights ? highlights[i] ? true : false : false
+
                 });
             }
 
             viewModel.maxTimeStamp = d3.max(viewModel.dataPoints, d => d.timeStamp);
 
             return viewModel;
+        }
+
+        public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions):
+            VisualObjectInstanceEnumeration {
+
+            let propertyGroupName = options.objectName;
+            let properties: VisualObjectInstance[] = [];
+
+            switch (propertyGroupName) {
+
+                case "dataColors":
+                    if (this.viewModel) {
+                        for (let dp of this.viewModel.dataPoints) {
+                            properties.push({
+                                objectName: propertyGroupName,
+                                displayName: dp.event,
+                                properties: {
+                                    fill: dp.color
+                                },
+                                selector: dp.identity.getSelector()
+                            })
+                        }
+                    }
+                    break;
+            }
+            return properties;
         }
     }
 }

@@ -10125,6 +10125,7 @@ var powerbi;
         })(visual = extensibility.visual || (extensibility.visual = {}));
     })(extensibility = powerbi.extensibility || (powerbi.extensibility = {}));
 })(powerbi || (powerbi = {}));
+var DataViewObjects = powerbi.extensibility.utils.dataview.DataViewObjects;
 var powerbi;
 (function (powerbi) {
     var extensibility;
@@ -10178,6 +10179,7 @@ var powerbi;
                         return ratio1;
                     };
                     Visual.prototype.update = function (options) {
+                        this.viewModel = this.getViewModel(options);
                         var viewportWidth = options.viewport.width;
                         var viewportHeight = options.viewport.height;
                         var minPixels = viewportWidth / 6.5;
@@ -10193,6 +10195,12 @@ var powerbi;
                         var viewModel = this.getViewModel(options);
                         var ratioArray = this.getDateRatio(options);
                         var datesArray = options.dataViews[0].categorical.categories[0].values;
+                        this.eventDate.selectAll("text").remove();
+                        this.labelBoxes.selectAll("rect").remove();
+                        this.labelText.selectAll("text").remove();
+                        this.verticalLine.selectAll("line").remove();
+                        this.eventName.selectAll("text").remove();
+                        this.secondEvent.selectAll("text").remove();
                         this.svg
                             .attr("height", options.viewport.height) //SVG height and width
                             .attr("width", options.viewport.width);
@@ -10202,7 +10210,7 @@ var powerbi;
                             .attr("x2", viewportWidth - 20)
                             .attr("y2", viewportHeight / 1.5)
                             .style("stroke", lineColor);
-                        this.labelBoxes.selectAll("rect").remove()
+                        this.labelBoxes.selectAll("rect")
                             .data(totalElements)
                             .enter()
                             .append("rect")
@@ -10229,7 +10237,7 @@ var powerbi;
                             .style("fill", function (d, i) {
                             return colors[i];
                         });
-                        this.labelText.selectAll("text").remove()
+                        this.labelText.selectAll("text")
                             .data(totalElements)
                             .enter()
                             .append("text")
@@ -10257,7 +10265,7 @@ var powerbi;
                             }
                         })
                             .style("fill", "black");
-                        this.verticalLine.selectAll("line").remove()
+                        this.verticalLine.selectAll("line")
                             .data(ratioArray)
                             .enter()
                             .append("line") //Vertical lines
@@ -10291,7 +10299,7 @@ var powerbi;
                             .style("stroke-width", "4");
                         var event;
                         var partEvent = [""];
-                        this.eventName.selectAll("text").remove()
+                        this.eventName.selectAll("text")
                             .data(viewModel.dataPoints)
                             .enter()
                             .append("text")
@@ -10331,7 +10339,7 @@ var powerbi;
                             .style("fill", eventColors)
                             .style("background", "red")
                             .style("font-weight", "bold");
-                        this.secondEvent.selectAll("text").remove()
+                        this.secondEvent.selectAll("text")
                             .data(partEvent)
                             .enter()
                             .append("text")
@@ -10356,7 +10364,7 @@ var powerbi;
                             .style("fill", eventColors)
                             .style("background", "red")
                             .style("font-weight", "bold");
-                        this.eventDate.selectAll("text").remove()
+                        this.eventDate.selectAll("text")
                             .data(viewModel.dataPoints)
                             .enter()
                             .append("text")
@@ -10405,14 +10413,46 @@ var powerbi;
                         var view = dv[0].categorical;
                         var categories = view.categories[0];
                         var values = view.values[0];
+                        var objects = categories.objects;
+                        var highlights = values.highlights;
                         for (var i = 0, len = Math.max(categories.values.length, values.values.length); i < len; i++) {
                             viewModel.dataPoints.push({
                                 event: values.values[i],
-                                timeStamp: categories.values[i]
+                                timeStamp: categories.values[i],
+                                color: objects && objects[i] && DataViewObjects.getFillColor(objects[i], {
+                                    objectName: "dataColors",
+                                    propertyName: "fill"
+                                }, null) || this.host.colorPalette.getColor(categories.values[i]).value,
+                                identity: this.host.createSelectionIdBuilder()
+                                    .withCategory(categories, i)
+                                    .createSelectionId(),
+                                highlighted: highlights ? highlights[i] ? true : false : false
                             });
                         }
                         viewModel.maxTimeStamp = d3.max(viewModel.dataPoints, function (d) { return d.timeStamp; });
                         return viewModel;
+                    };
+                    Visual.prototype.enumerateObjectInstances = function (options) {
+                        var propertyGroupName = options.objectName;
+                        var properties = [];
+                        switch (propertyGroupName) {
+                            case "dataColors":
+                                if (this.viewModel) {
+                                    for (var _i = 0, _a = this.viewModel.dataPoints; _i < _a.length; _i++) {
+                                        var dp = _a[_i];
+                                        properties.push({
+                                            objectName: propertyGroupName,
+                                            displayName: dp.event,
+                                            properties: {
+                                                fill: dp.color
+                                            },
+                                            selector: dp.identity.getSelector()
+                                        });
+                                    }
+                                }
+                                break;
+                        }
+                        return properties;
                     };
                     return Visual;
                 }());
