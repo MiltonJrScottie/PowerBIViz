@@ -6,9 +6,6 @@ module powerbi.extensibility.visual {
     interface DataPoint {
         event: string;
         timeStamp: Date;
-        color: string;
-        identity: powerbi.visuals.ISelectionId;
-        highlighted: boolean;
     };
 
     interface ViewModel {
@@ -29,9 +26,49 @@ module powerbi.extensibility.visual {
         private secondEvent: d3.Selection<SVGElement>;
         private viewModel: ViewModel;
 
+        private settings = {
+
+            lineColor: {
+                line: {
+                    color: {
+                        default: "#000000",
+                        value: "#000000"
+                    }
+                }
+            },
+            events: {
+                text: {
+                    color: {
+                        default: "#777777",
+                        value: "#777777"
+                    }//,
+                    //fontSize: {
+                    //    default: 20,
+                    //    value: 20
+                    //}
+                }
+            },
+            timestamps: {
+                text: {
+                    color: {
+                        default: "000000",
+                        value: "000000"
+                    }
+                }
+            },
+            dataFont: {
+                text: {
+                    fontSize: {
+                        default: 20,
+                        value: 20
+                    }
+                }
+            }
+        }
+
         constructor(options: VisualConstructorOptions) {
 			let svg=this.svg=d3.select(options.element)
-						.append("svg")
+                .append("svg")
 		
 
             this.horizontalLine=svg.append("line")
@@ -42,8 +79,9 @@ module powerbi.extensibility.visual {
             this.eventDate=svg.append("g")
             this.labelBoxes=svg.append("g")
             this.labelText=svg.append("g")
-            this.secondEvent=svg.append("g")
+            this.secondEvent = svg.append("g")
         }
+
 
         private getDateRatio(options: VisualUpdateOptions): number[] {
             
@@ -84,21 +122,23 @@ module powerbi.extensibility.visual {
 
         public update(options: VisualUpdateOptions) {
 
+            this.updateSettings(options);
+
             this.viewModel = this.getViewModel(options);
             
             let viewportWidth=options.viewport.width;
             let viewportHeight=options.viewport.height;
             let minPixels=viewportWidth/6.5;
             let verticalLineHeight=(options.viewport.height / 1.5) - (options.viewport.height/3);
-            let initialOffset=100;
-            let fontSize= 0.02 * options.viewport.width;
-            let totalElements=[1,2];
-            let lineColor="rgb(30, 142, 159)";
-            let colors=["rgb(41, 130, 23)","black"];
+            let initialOffset = 100;
+            let fontSize = this.settings.dataFont.text.fontSize.value;/*this.settings.events.text.fontSize.value;*/ //0.02 * options.viewport.width;
+            let totalElements = [1, 2];
+            let lineColor = this.settings.lineColor.line.color.value;
+            let colors = [this.settings.events.text.color.value /*Event and related text*/, this.settings.timestamps.text.color.value /*Timestamp and related text*/];
            
             let texts=[options.dataViews[0].categorical.values[0].source.displayName ,options.dataViews[0].categorical.categories[0].source.displayName];
-            let eventColors="rgb(41, 130, 23)";
-            let dateColors="black";
+          //  let eventColors="rgb(41, 130, 23)";
+          //  let dateColors="black";
             
             let viewModel = this.getViewModel(options);
             let ratioArray=this.getDateRatio(options);
@@ -271,7 +311,7 @@ module powerbi.extensibility.visual {
                         })//verticalLineHeight-35)
                         .attr("text-anchor","middle")
                         .attr("font-size",fontSize)
-                        .style("fill", eventColors)
+                        .style("fill", colors[0])
                         .style("background", "red")
                         .style("font-weight","bold")
                     
@@ -300,7 +340,7 @@ module powerbi.extensibility.visual {
                             .attr("y",verticalLineHeight-5)
                             .attr("text-anchor","middle")
                             .attr("font-size",fontSize)
-                            .style("fill", eventColors)
+                            .style("fill", colors[0])
                             .style("background", "red")
                             .style("font-weight", "bold")
                             
@@ -339,13 +379,21 @@ module powerbi.extensibility.visual {
                             .attr("text-anchor","middle")
                             .attr("font-size", fontSize)//0.018 * options.viewport.width)
                         
-                            .style("fill", dateColors)//"rgb(41, 130, 23)")
+                            .style("fill", colors[1])//"rgb(41, 130, 23)")
 
 
                         
                
         }
 
+        private updateSettings(options: VisualUpdateOptions) {
+
+            this.settings.lineColor.line.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "lineColor", propertyName: "color" }, this.settings.lineColor.line.color.default);
+            this.settings.events.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "events", propertyName: "color" }, this.settings.events.text.color.default);
+            this.settings.dataFont.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "dataFont", propertyName: "fontSize" }, this.settings.dataFont.text.fontSize.default);
+            //this.settings.events.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "events", propertyName: "fontSize" }, this.settings.events.text.fontSize.default);
+            this.settings.timestamps.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "timestamps", propertyName: "color" }, this.settings.timestamps.text.color.default);
+        }
         
 
         private getViewModel(options: VisualUpdateOptions): ViewModel {
@@ -368,23 +416,11 @@ module powerbi.extensibility.visual {
             let view = dv[0].categorical;
             let categories = view.categories[0];
             let values = view.values[0];
-            let objects = categories.objects;
-            let highlights = values.highlights;
 
             for (let i = 0, len = Math.max(categories.values.length, values.values.length); i < len; i++) {
                 viewModel.dataPoints.push({
                     event: <string>values.values[i],
                     timeStamp: <Date>categories.values[i],
-
-                    color: objects && objects[i] && DataViewObjects.getFillColor(objects[i], {
-                        objectName: "dataColors",
-                        propertyName: "fill"
-                    }, null) || this.host.colorPalette.getColor(<string>categories.values[i]).value,
-
-                    identity: this.host.createSelectionIdBuilder()
-                        .withCategory(categories, i)
-                        .createSelectionId(),
-                    highlighted: highlights ? highlights[i] ? true : false : false
 
                 });
             }
@@ -402,21 +438,48 @@ module powerbi.extensibility.visual {
 
             switch (propertyGroupName) {
 
-                case "dataColors":
-                    if (this.viewModel) {
-                        for (let dp of this.viewModel.dataPoints) {
-                            properties.push({
-                                objectName: propertyGroupName,
-                                displayName: dp.event,
-                                properties: {
-                                    fill: dp.color
-                                },
-                                selector: dp.identity.getSelector()
-                            })
-                        }
-                    }
+                case "lineColor":
+                    properties.push({
+                        objectName: propertyGroupName,
+                        properties: {
+                            color: this.settings.lineColor.line.color.value
+                        },
+                        selector: null
+                    });
+                    break;
+
+                case "events":
+                    properties.push({
+                        objectName: propertyGroupName,
+                        properties: {
+                            color: this.settings.events.text.color.value,
+                            //fontSize: this.settings.events.text.fontSize.value
+                        },
+                        selector: null
+                    });
+                    break;
+
+                case "timestamps":
+                    properties.push({
+                        objectName: propertyGroupName,
+                        properties: {
+                            color: this.settings.timestamps.text.color.value
+                        },
+                        selector: null
+                    });
+                    break;
+
+                case "dataFont":
+                    properties.push({
+                        objectName: propertyGroupName,
+                        properties: {
+                            fontSize: this.settings.dataFont.text.fontSize.value
+                        },
+                        selector: null
+                    });
                     break;
             }
+
             return properties;
         }
     }

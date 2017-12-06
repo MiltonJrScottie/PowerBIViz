@@ -12,16 +12,59 @@
     }
   ],
   "objects": {
-    "dataColors": {
-      "displayName": "Data Colors",
+    "lineColor": {
+      "displayName": "Line Color",
       "properties": {
-        "fill": {
+        "color": {
           "displayName": "Color",
           "type": {
             "fill": {
               "solid": {
                 "color": true
               }
+            }
+          }
+        }
+      }
+    },
+    "events": {
+      "displayName": "Events",
+      "properties": {
+        "color": {
+          "displayName": "Color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "timestamps": {
+      "displayName": "Timestamps",
+      "properties": {
+        "color": {
+          "displayName": "Color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "dataFont": {
+      "displayName": "Font Size",
+      "properties": {
+        "fontSize": {
+          "displayName": "Size",
+          "type": {
+            "formatting": {
+              "fontSize": true
             }
           }
         }
