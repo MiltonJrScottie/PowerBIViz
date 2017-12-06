@@ -10125,6 +10125,7 @@ var powerbi;
         })(visual = extensibility.visual || (extensibility.visual = {}));
     })(extensibility = powerbi.extensibility || (powerbi.extensibility = {}));
 })(powerbi || (powerbi = {}));
+var DataViewObjects = powerbi.extensibility.utils.dataview.DataViewObjects;
 var powerbi;
 (function (powerbi) {
     var extensibility;
@@ -10138,6 +10139,40 @@ var powerbi;
                 ;
                 var Visual = (function () {
                     function Visual(options) {
+                        this.settings = {
+                            lineColor: {
+                                line: {
+                                    color: {
+                                        default: "#000000",
+                                        value: "#000000"
+                                    }
+                                }
+                            },
+                            events: {
+                                text: {
+                                    color: {
+                                        default: "#777777",
+                                        value: "#777777"
+                                    } //,
+                                }
+                            },
+                            timestamps: {
+                                text: {
+                                    color: {
+                                        default: "000000",
+                                        value: "000000"
+                                    }
+                                }
+                            },
+                            dataFont: {
+                                text: {
+                                    fontSize: {
+                                        default: 20,
+                                        value: 20
+                                    }
+                                }
+                            }
+                        };
                         var svg = this.svg = d3.select(options.element)
                             .append("svg");
                         this.horizontalLine = svg.append("line")
@@ -10178,21 +10213,29 @@ var powerbi;
                         return ratio1;
                     };
                     Visual.prototype.update = function (options) {
+                        this.updateSettings(options);
+                        this.viewModel = this.getViewModel(options);
                         var viewportWidth = options.viewport.width;
                         var viewportHeight = options.viewport.height;
                         var minPixels = viewportWidth / 6.5;
                         var verticalLineHeight = (options.viewport.height / 1.5) - (options.viewport.height / 3);
                         var initialOffset = 100;
-                        var fontSize = 0.02 * options.viewport.width;
+                        var fontSize = this.settings.dataFont.text.fontSize.value; /*this.settings.events.text.fontSize.value;*/ //0.02 * options.viewport.width;
                         var totalElements = [1, 2];
-                        var lineColor = "rgb(30, 142, 159)";
-                        var colors = ["rgb(41, 130, 23)", "black"];
+                        var lineColor = this.settings.lineColor.line.color.value;
+                        var colors = [this.settings.events.text.color.value /*Event and related text*/, this.settings.timestamps.text.color.value /*Timestamp and related text*/];
                         var texts = [options.dataViews[0].categorical.values[0].source.displayName, options.dataViews[0].categorical.categories[0].source.displayName];
-                        var eventColors = "rgb(41, 130, 23)";
-                        var dateColors = "black";
+                        //  let eventColors="rgb(41, 130, 23)";
+                        //  let dateColors="black";
                         var viewModel = this.getViewModel(options);
                         var ratioArray = this.getDateRatio(options);
                         var datesArray = options.dataViews[0].categorical.categories[0].values;
+                        this.eventDate.selectAll("text").remove();
+                        this.labelBoxes.selectAll("rect").remove();
+                        this.labelText.selectAll("text").remove();
+                        this.verticalLine.selectAll("line").remove();
+                        this.eventName.selectAll("text").remove();
+                        this.secondEvent.selectAll("text").remove();
                         this.svg
                             .attr("height", options.viewport.height) //SVG height and width
                             .attr("width", options.viewport.width);
@@ -10202,7 +10245,7 @@ var powerbi;
                             .attr("x2", viewportWidth - 20)
                             .attr("y2", viewportHeight / 1.5)
                             .style("stroke", lineColor);
-                        this.labelBoxes.selectAll("rect").remove()
+                        this.labelBoxes.selectAll("rect")
                             .data(totalElements)
                             .enter()
                             .append("rect")
@@ -10229,7 +10272,7 @@ var powerbi;
                             .style("fill", function (d, i) {
                             return colors[i];
                         });
-                        this.labelText.selectAll("text").remove()
+                        this.labelText.selectAll("text")
                             .data(totalElements)
                             .enter()
                             .append("text")
@@ -10257,7 +10300,7 @@ var powerbi;
                             }
                         })
                             .style("fill", "black");
-                        this.verticalLine.selectAll("line").remove()
+                        this.verticalLine.selectAll("line")
                             .data(ratioArray)
                             .enter()
                             .append("line") //Vertical lines
@@ -10291,7 +10334,7 @@ var powerbi;
                             .style("stroke-width", "4");
                         var event;
                         var partEvent = [""];
-                        this.eventName.selectAll("text").remove()
+                        this.eventName.selectAll("text")
                             .data(viewModel.dataPoints)
                             .enter()
                             .append("text")
@@ -10328,10 +10371,10 @@ var powerbi;
                         }) //verticalLineHeight-35)
                             .attr("text-anchor", "middle")
                             .attr("font-size", fontSize)
-                            .style("fill", eventColors)
+                            .style("fill", colors[0])
                             .style("background", "red")
                             .style("font-weight", "bold");
-                        this.secondEvent.selectAll("text").remove()
+                        this.secondEvent.selectAll("text")
                             .data(partEvent)
                             .enter()
                             .append("text")
@@ -10353,10 +10396,10 @@ var powerbi;
                             .attr("y", verticalLineHeight - 5)
                             .attr("text-anchor", "middle")
                             .attr("font-size", fontSize)
-                            .style("fill", eventColors)
+                            .style("fill", colors[0])
                             .style("background", "red")
                             .style("font-weight", "bold");
-                        this.eventDate.selectAll("text").remove()
+                        this.eventDate.selectAll("text")
                             .data(viewModel.dataPoints)
                             .enter()
                             .append("text")
@@ -10387,7 +10430,14 @@ var powerbi;
                             .attr("y", (options.viewport.height / 1.5) + 25)
                             .attr("text-anchor", "middle")
                             .attr("font-size", fontSize) //0.018 * options.viewport.width)
-                            .style("fill", dateColors); //"rgb(41, 130, 23)")
+                            .style("fill", colors[1]); //"rgb(41, 130, 23)")
+                    };
+                    Visual.prototype.updateSettings = function (options) {
+                        this.settings.lineColor.line.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "lineColor", propertyName: "color" }, this.settings.lineColor.line.color.default);
+                        this.settings.events.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "events", propertyName: "color" }, this.settings.events.text.color.default);
+                        this.settings.dataFont.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "dataFont", propertyName: "fontSize" }, this.settings.dataFont.text.fontSize.default);
+                        //this.settings.events.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "events", propertyName: "fontSize" }, this.settings.events.text.fontSize.default);
+                        this.settings.timestamps.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "timestamps", propertyName: "color" }, this.settings.timestamps.text.color.default);
                     };
                     Visual.prototype.getViewModel = function (options) {
                         var dv = options.dataViews;
@@ -10408,11 +10458,54 @@ var powerbi;
                         for (var i = 0, len = Math.max(categories.values.length, values.values.length); i < len; i++) {
                             viewModel.dataPoints.push({
                                 event: values.values[i],
-                                timeStamp: categories.values[i]
+                                timeStamp: categories.values[i],
                             });
                         }
                         viewModel.maxTimeStamp = d3.max(viewModel.dataPoints, function (d) { return d.timeStamp; });
                         return viewModel;
+                    };
+                    Visual.prototype.enumerateObjectInstances = function (options) {
+                        var propertyGroupName = options.objectName;
+                        var properties = [];
+                        switch (propertyGroupName) {
+                            case "lineColor":
+                                properties.push({
+                                    objectName: propertyGroupName,
+                                    properties: {
+                                        color: this.settings.lineColor.line.color.value
+                                    },
+                                    selector: null
+                                });
+                                break;
+                            case "events":
+                                properties.push({
+                                    objectName: propertyGroupName,
+                                    properties: {
+                                        color: this.settings.events.text.color.value,
+                                    },
+                                    selector: null
+                                });
+                                break;
+                            case "timestamps":
+                                properties.push({
+                                    objectName: propertyGroupName,
+                                    properties: {
+                                        color: this.settings.timestamps.text.color.value
+                                    },
+                                    selector: null
+                                });
+                                break;
+                            case "dataFont":
+                                properties.push({
+                                    objectName: propertyGroupName,
+                                    properties: {
+                                        fontSize: this.settings.dataFont.text.fontSize.value
+                                    },
+                                    selector: null
+                                });
+                                break;
+                        }
+                        return properties;
                     };
                     return Visual;
                 }());
