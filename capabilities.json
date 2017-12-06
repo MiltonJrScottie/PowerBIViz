@@ -1,84 +1,97 @@
 {
-    "dataRoles": [
-        {
-            "displayName": "TimeStamp",
-            "name": "category",
-            "kind": "Grouping"
-        },
-        {
-            "displayName": "Event",
-            "name": "measure",
-            "kind": "Measure"
-        }
-    ],
-    "objects": {
-        "dataPoint": {
-            "displayName": "Data colors",
-            "properties": {
-                "defaultColor": {
-                    "displayName": "Default color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "showAllDataPoints": {
-                    "displayName": "Show all",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "fill": {
-                    "displayName": "Fill",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "fillRule": {
-                    "displayName": "Color saturation",
-                    "type": {
-                        "fill": {}
-                    }
-                },
-                 "fontSize": {
-                    "displayName": "Text Size",
-                    "type": {
-                        "formatting": {
-                            "fontSize": true
-                        }
-                    }
-                }
-            }
-        }
+  "dataRoles": [
+    {
+      "displayName": "TimeStamp",
+      "name": "category",
+      "kind": "Grouping"
     },
-    "dataViewMappings": [
-        {
-            "categorical": {
-                "categories": {
-                    "for": {
-                        "in": "category"
-                    },
-                    "dataReductionAlgorithm": {
-                        "top": {}
-                    }
-                },
-                "values": {
-                    "select": [
-                        {
-                            "bind": {
-                                "to": "measure"
-                            }
-                        }
-                    ]
-                }
+    {
+      "displayName": "Event",
+      "name": "measure",
+      "kind": "Measure"
+    }
+  ],
+  "objects": {
+    "lineColor": {
+      "displayName": "Line Color",
+      "properties": {
+        "color": {
+          "displayName": "Color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
             }
+          }
         }
-    ]
+      }
+    },
+    "events": {
+      "displayName": "Events",
+      "properties": {
+        "color": {
+          "displayName": "Color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "timestamps": {
+      "displayName": "Timestamps",
+      "properties": {
+        "color": {
+          "displayName": "Color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "dataFont": {
+      "displayName": "Font Size",
+      "properties": {
+        "fontSize": {
+          "displayName": "Size",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "dataViewMappings": [
+    {
+      "categorical": {
+        "categories": {
+          "for": {
+            "in": "category"
+          },
+          "dataReductionAlgorithm": {
+            "top": {}
+          }
+        },
+        "values": {
+          "select": [
+            {
+              "bind": {
+                "to": "measure"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
 }

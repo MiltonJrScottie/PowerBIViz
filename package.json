@@ -3,6 +3,6 @@
   "dependencies": {
     "@types/d3": "^3.5.39",
     "d3": "^3.5.17",
-    "powerbi-visuals-utils-dataviewutils": "1.2.0"
+    "powerbi-visuals-utils-dataviewutils": "^1.2.0"
   }
 }
