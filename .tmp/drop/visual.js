@@ -10143,7 +10143,7 @@ var powerbi;
                             lineColor: {
                                 line: {
                                     color: {
-                                        default: "#000000",
+                                        default: "#018A80",
                                         value: "#000000"
                                     }
                                 }
@@ -10174,7 +10174,9 @@ var powerbi;
                             }
                         };
                         var svg = this.svg = d3.select(options.element)
-                            .append("svg");
+                            .append("svg")
+                            .style("background", "rgb(249, 250, 252)");
+                        //.style("border","2px black solid")
                         this.horizontalLine = svg.append("line")
                             .style("stroke-width", "6");
                         this.verticalLine = svg.append("g");
@@ -10187,14 +10189,13 @@ var powerbi;
                     Visual.prototype.getDateRatio = function (options) {
                         var eventDates = options.dataViews[0].categorical.categories[0].values;
                         var ratio = [1];
-                        var ratio1 = [1];
                         var difference = [1];
                         for (var i = 0; i < eventDates.length - 1; i++) {
-                            var tdate = new Date(eventDates[i].toString());
-                            var tdate1 = new Date(eventDates[i + 1].toString());
-                            var time = tdate.getTime();
-                            var time2 = tdate1.getTime();
-                            difference[i] = ((time2 / 3600000) - (time / 3600000));
+                            var eventDate = new Date(eventDates[i].toString());
+                            var nextEventDate = new Date(eventDates[i + 1].toString());
+                            var eventTime = eventDate.getTime();
+                            var nextEventTime = nextEventDate.getTime();
+                            difference[i] = ((nextEventTime / 3600000) - (eventTime / 3600000));
                             if (i == 0) {
                                 ratio[i] = 1;
                             }
@@ -10202,50 +10203,35 @@ var powerbi;
                                 ratio[i] = difference[i] / difference[0];
                             }
                         }
-                        for (var k = 0; k < eventDates.length; k++) {
-                            if (k == 0) {
-                                ratio1[k] = 1; //eventDates[1].toString(); 
-                            }
-                            else {
-                                ratio1[k] = ratio[k - 1]; //(ratio[i - 1]).toString();
-                            }
-                        }
-                        return ratio1;
+                        return ratio;
                     };
                     Visual.prototype.update = function (options) {
                         this.updateSettings(options);
                         this.viewModel = this.getViewModel(options);
                         var viewportWidth = options.viewport.width;
                         var viewportHeight = options.viewport.height;
-                        var minPixels = viewportWidth / 6.5;
-                        var verticalLineHeight = (options.viewport.height / 1.5) - (options.viewport.height / 3);
+                        var verticalLineHeight = (viewportHeight / 1.5) - (viewportHeight / 3);
                         var initialOffset = 100;
                         var fontSize = this.settings.dataFont.text.fontSize.value; /*this.settings.events.text.fontSize.value;*/ //0.02 * options.viewport.width;
                         var totalElements = [1, 2];
                         var lineColor = this.settings.lineColor.line.color.value;
-                        var colors = [this.settings.events.text.color.value /*Event and related text*/, this.settings.timestamps.text.color.value /*Timestamp and related text*/];
-                        var texts = [options.dataViews[0].categorical.values[0].source.displayName, options.dataViews[0].categorical.categories[0].source.displayName];
-                        //  let eventColors="rgb(41, 130, 23)";
-                        //  let dateColors="black";
+                        var textColors = [this.settings.events.text.color.value /*Event and related text*/, this.settings.timestamps.text.color.value /*Timestamp and related text*/];
+                        var labelTexts = [options.dataViews[0].categorical.values[0].source.displayName, options.dataViews[0].categorical.categories[0].source.displayName];
                         var viewModel = this.getViewModel(options);
                         var ratioArray = this.getDateRatio(options);
                         var datesArray = options.dataViews[0].categorical.categories[0].values;
-                        this.eventDate.selectAll("text").remove();
-                        this.labelBoxes.selectAll("rect").remove();
-                        this.labelText.selectAll("text").remove();
-                        this.verticalLine.selectAll("line").remove();
-                        this.eventName.selectAll("text").remove();
-                        this.secondEvent.selectAll("text").remove();
+                        var minPixels = this.getminimumPixels(viewportWidth, ratioArray, initialOffset); //viewportWidth/6.5;
+                        this.removeElements(); //removes the old elements
                         this.svg
-                            .attr("height", options.viewport.height) //SVG height and width
+                            .attr("height", options.viewport.height)
                             .attr("width", options.viewport.width);
                         this.horizontalLine
                             .attr("x1", 20)
-                            .attr("y1", viewportHeight / 1.5) //Horizontal line
+                            .attr("y1", viewportHeight / 1.5) //Draws horizontal line
                             .attr("x2", viewportWidth - 20)
                             .attr("y2", viewportHeight / 1.5)
                             .style("stroke", lineColor);
-                        this.labelBoxes.selectAll("rect")
+                        this.labelBoxes.selectAll("rect") //Draws labelboxes
                             .data(totalElements)
                             .enter()
                             .append("rect")
@@ -10261,7 +10247,7 @@ var powerbi;
                             return viewportHeight / 10;
                         })
                             .attr("height", function (i) {
-                            if (viewportHeight < 322) {
+                            if (viewportHeight < 322 || viewportWidth < 400) {
                                 return 0;
                             }
                             else {
@@ -10270,14 +10256,14 @@ var powerbi;
                         })
                             .attr("width", 15)
                             .style("fill", function (d, i) {
-                            return colors[i];
+                            return textColors[i];
                         });
-                        this.labelText.selectAll("text")
+                        this.labelText.selectAll("text") //Writes the text next to label boxes            
                             .data(totalElements)
                             .enter()
                             .append("text")
                             .text(function (d, i) {
-                            return texts[i];
+                            return labelTexts[i];
                         })
                             .attr("x", function (d, i) {
                             if (i == 0) {
@@ -10292,7 +10278,7 @@ var powerbi;
                         })
                             .attr("text-anchor", "middle")
                             .attr("font-size", function (i) {
-                            if (viewportHeight < 322) {
+                            if (viewportHeight < 322 || viewportWidth < 400) {
                                 return 0;
                             }
                             else {
@@ -10300,17 +10286,17 @@ var powerbi;
                             }
                         })
                             .style("fill", "black");
-                        this.verticalLine.selectAll("line")
-                            .data(ratioArray)
+                        this.verticalLine.selectAll("line") //Draws Vertical lines
+                            .data(viewModel.dataPoints)
                             .enter()
-                            .append("line") //Vertical lines
+                            .append("line")
                             .attr("x1", function (d, i) {
                             if (i == 0) {
                                 return initialOffset;
                             }
                             else {
                                 var x0 = initialOffset;
-                                for (var j = 1; j <= i; j++) {
+                                for (var j = 0; j < i; j++) {
                                     x0 = x0 + (ratioArray[j] * minPixels);
                                 }
                                 return x0;
@@ -10323,7 +10309,7 @@ var powerbi;
                             }
                             else {
                                 var x0 = initialOffset;
-                                for (var j = 1; j <= i; j++) {
+                                for (var j = 0; j < i; j++) {
                                     x0 = x0 + (ratioArray[j] * minPixels);
                                 }
                                 return x0;
@@ -10334,7 +10320,7 @@ var powerbi;
                             .style("stroke-width", "4");
                         var event;
                         var partEvent = [""];
-                        this.eventName.selectAll("text")
+                        this.eventName.selectAll("text") //Writes event names
                             .data(viewModel.dataPoints)
                             .enter()
                             .append("text")
@@ -10354,7 +10340,7 @@ var powerbi;
                             }
                             else {
                                 var x0 = initialOffset;
-                                for (var j = 1; j <= i; j++) {
+                                for (var j = 0; j < i; j++) {
                                     x0 = x0 + (ratioArray[j] * minPixels);
                                 }
                                 return x0;
@@ -10368,13 +10354,12 @@ var powerbi;
                             else if (event.length < 2) {
                                 return verticalLineHeight - 5;
                             }
-                        }) //verticalLineHeight-35)
+                        })
                             .attr("text-anchor", "middle")
                             .attr("font-size", fontSize)
-                            .style("fill", colors[0])
-                            .style("background", "red")
+                            .style("fill", textColors[0])
                             .style("font-weight", "bold");
-                        this.secondEvent.selectAll("text")
+                        this.secondEvent.selectAll("text") //Writes the second part of the longer event name
                             .data(partEvent)
                             .enter()
                             .append("text")
@@ -10387,7 +10372,7 @@ var powerbi;
                             }
                             else {
                                 var x0 = initialOffset;
-                                for (var j = 1; j <= i; j++) {
+                                for (var j = 0; j < i; j++) {
                                     x0 = x0 + (ratioArray[j] * minPixels);
                                 }
                                 return x0;
@@ -10396,10 +10381,10 @@ var powerbi;
                             .attr("y", verticalLineHeight - 5)
                             .attr("text-anchor", "middle")
                             .attr("font-size", fontSize)
-                            .style("fill", colors[0])
+                            .style("fill", textColors[0])
                             .style("background", "red")
                             .style("font-weight", "bold");
-                        this.eventDate.selectAll("text")
+                        this.eventDate.selectAll("text") //Put the dates on the appropriate position
                             .data(viewModel.dataPoints)
                             .enter()
                             .append("text")
@@ -10421,7 +10406,7 @@ var powerbi;
                             }
                             else {
                                 var x0 = initialOffset + 10;
-                                for (var j = 1; j <= i; j++) {
+                                for (var j = 0; j < i; j++) {
                                     x0 = x0 + (ratioArray[j] * minPixels);
                                 }
                                 return x0;
@@ -10429,8 +10414,36 @@ var powerbi;
                         })
                             .attr("y", (options.viewport.height / 1.5) + 25)
                             .attr("text-anchor", "middle")
-                            .attr("font-size", fontSize) //0.018 * options.viewport.width)
-                            .style("fill", colors[1]); //"rgb(41, 130, 23)")
+                            .attr("font-size", fontSize)
+                            .style("fill", textColors[1]);
+                    };
+                    Visual.prototype.getminimumPixels = function (width, ratioArray, initialOffset) {
+                        var minPixels = width / ((ratioArray.length) / 2);
+                        var maxBoundary = (width - (initialOffset + 30));
+                        var maxX = initialOffset;
+                        var divisor = 0;
+                        do {
+                            maxX = initialOffset;
+                            for (var j = 0; j < ratioArray.length; j++) {
+                                maxX = maxX + (ratioArray[j] * minPixels);
+                            }
+                            if (maxX > maxBoundary) {
+                                minPixels = width / (ratioArray.length + divisor);
+                                divisor = divisor + 0.1;
+                            }
+                        } while (maxX > maxBoundary && width > 240);
+                        if (width < 250) {
+                            return 0;
+                        }
+                        return minPixels;
+                    };
+                    Visual.prototype.removeElements = function () {
+                        this.eventDate.selectAll("text").remove();
+                        this.labelBoxes.selectAll("rect").remove();
+                        this.labelText.selectAll("text").remove();
+                        this.verticalLine.selectAll("line").remove();
+                        this.eventName.selectAll("text").remove();
+                        this.secondEvent.selectAll("text").remove();
                     };
                     Visual.prototype.updateSettings = function (options) {
                         this.settings.lineColor.line.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "lineColor", propertyName: "color" }, this.settings.lineColor.line.color.default);

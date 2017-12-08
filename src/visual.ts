@@ -31,7 +31,7 @@ module powerbi.extensibility.visual {
             lineColor: {
                 line: {
                     color: {
-                        default: "#000000",
+                        default: "#018A80",
                         value: "#000000"
                     }
                 }
@@ -69,9 +69,9 @@ module powerbi.extensibility.visual {
         constructor(options: VisualConstructorOptions) {
 			let svg=this.svg=d3.select(options.element)
                 .append("svg")
-		
-
-            this.horizontalLine=svg.append("line")
+                .style("background", "rgb(249, 250, 252)")
+                //.style("border","2px black solid")
+		    this.horizontalLine=svg.append("line")
             .style("stroke-width","6")
 
             this.verticalLine=svg.append("g")
@@ -82,89 +82,62 @@ module powerbi.extensibility.visual {
             this.secondEvent = svg.append("g")
         }
 
-
         private getDateRatio(options: VisualUpdateOptions): number[] {
             
-                        let eventDates = options.dataViews[0].categorical.categories[0].values;
-                        let ratio = [1];
-                        let ratio1 = [1];
-                        let difference = [1];
-                        for (var i = 0; i < eventDates.length-1; i++) {
-                           
-                           let tdate: Date = new Date(eventDates[i].toString());
-                            let tdate1: Date = new Date(eventDates[i + 1].toString());
-                            let time = tdate.getTime();
-                            let time2 = tdate1.getTime();
-                            difference[i] = ((time2 / 3600000) - (time / 3600000));
-                           if (i==0) {
-                                ratio[i] = 1;
-                            }
-                           else {
-                                ratio[i] = difference[i] / difference[0];
-                            }
-            
-                        }
-                   
-                        for (var k = 0; k< eventDates.length; k++) {
-                            
-                           if (k==0){
-            
-                               ratio1[k] = 1;//eventDates[1].toString(); 
-                            }
-                            else{
-                                ratio1[k] = ratio[k-1]//(ratio[i - 1]).toString();
-                           }
-                        }
-                        return ratio1;
-                    }
+            let eventDates = options.dataViews[0].categorical.categories[0].values;
+            let ratio = [1];
+            let difference = [1];
+            for (var i = 0; i < eventDates.length - 1; i++) {
+                let eventDate: Date = new Date(eventDates[i].toString());
+                let nextEventDate: Date = new Date(eventDates[i + 1].toString());
+                let eventTime = eventDate.getTime();
+                let nextEventTime = nextEventDate.getTime();
+                difference[i] = ((nextEventTime / 3600000) - (eventTime / 3600000));
+                if (i == 0) {
+                    ratio[i] = 1;
+                }
+                else {
+                    ratio[i] = difference[i] / difference[0];
+                }
 
-       
+            }
+            return ratio;
+        }
 
         public update(options: VisualUpdateOptions) {
 
             this.updateSettings(options);
-
             this.viewModel = this.getViewModel(options);
             
             let viewportWidth=options.viewport.width;
             let viewportHeight=options.viewport.height;
-            let minPixels=viewportWidth/6.5;
-            let verticalLineHeight=(options.viewport.height / 1.5) - (options.viewport.height/3);
+            let verticalLineHeight = (viewportHeight / 1.5) - (viewportHeight/3);
             let initialOffset = 100;
             let fontSize = this.settings.dataFont.text.fontSize.value;/*this.settings.events.text.fontSize.value;*/ //0.02 * options.viewport.width;
             let totalElements = [1, 2];
             let lineColor = this.settings.lineColor.line.color.value;
-            let colors = [this.settings.events.text.color.value /*Event and related text*/, this.settings.timestamps.text.color.value /*Timestamp and related text*/];
-           
-            let texts=[options.dataViews[0].categorical.values[0].source.displayName ,options.dataViews[0].categorical.categories[0].source.displayName];
-          //  let eventColors="rgb(41, 130, 23)";
-          //  let dateColors="black";
-            
+            let textColors = [this.settings.events.text.color.value /*Event and related text*/, this.settings.timestamps.text.color.value /*Timestamp and related text*/];
+            let labelTexts=[options.dataViews[0].categorical.values[0].source.displayName ,options.dataViews[0].categorical.categories[0].source.displayName];
+        
             let viewModel = this.getViewModel(options);
             let ratioArray=this.getDateRatio(options);
             let datesArray = options.dataViews[0].categorical.categories[0].values;
+            let minPixels = this.getminimumPixels(viewportWidth,ratioArray,initialOffset );//viewportWidth/6.5;
 
-            this.eventDate.selectAll("text").remove()
-            this.labelBoxes.selectAll("rect").remove()
-            this.labelText.selectAll("text").remove()
-            this.verticalLine.selectAll("line").remove()
-            this.eventName.selectAll("text").remove()
-            this.secondEvent.selectAll("text").remove()
-            
-            
+            this.removeElements();                                      //removes the old elements
+
             this.svg
-			.attr("height",options.viewport.height)                     //SVG height and width
+			.attr("height",options.viewport.height)                     
             .attr("width",options.viewport.width)
            
-		
 			this.horizontalLine
 			.attr("x1",20)
-			.attr("y1",viewportHeight/1.5)                              //Horizontal line
+			.attr("y1",viewportHeight/1.5)                              //Draws horizontal line
 			.attr("x2",viewportWidth-20)
             .attr("y2", viewportHeight / 1.5)
             .style("stroke",lineColor);
 
-            this.labelBoxes.selectAll("rect")
+            this.labelBoxes.selectAll("rect")                          //Draws labelboxes
             .data(totalElements)
             .enter()
                     .append("rect")
@@ -172,8 +145,7 @@ module powerbi.extensibility.visual {
                         if(i==0){
                             return 20;
                         }
-                        else
-                        {
+                        else{
                             return viewportWidth/4;
                         }
                     })
@@ -181,7 +153,7 @@ module powerbi.extensibility.visual {
                         return viewportHeight/10;
                     })
                     .attr("height",function(i){
-                        if(viewportHeight<322){
+                        if(viewportHeight<322 || viewportWidth<400){
                             return 0
                         }
                         else{
@@ -190,60 +162,55 @@ module powerbi.extensibility.visual {
                     })
                     .attr("width",15)
                     .style("fill",function(d,i){
-                        return colors[i];
+                        return textColors[i];
                     })
             
-            this.labelText.selectAll("text")
+            this.labelText.selectAll("text")                           //Writes the text next to label boxes            
                 .data(totalElements)
                 .enter()
-                .append("text")
-                .text(function(d,i){
-                    return texts[i];
-                    
-                })
-                .attr("x",function(d,i){
-                    if(i==0){
-                        return 100;
-                    }
-                    else
-                    {
-                        return (viewportWidth/4)+100;
-                    }
-                })
-                .attr("y",function(d,i){
-                    return viewportHeight/10+15;
-                })
-                .attr("text-anchor","middle")
-                .attr("font-size",function(i){
-                    if(viewportHeight<322){
-                        return 0;
-                    }
-                    else{
-                        return fontSize;
-                    }
-                })
-                .style("fill","black")
+                    .append("text")
+                    .text(function(d,i){
+                        return labelTexts[i];
+                    })
+                    .attr("x",function(d,i){
+                        if(i==0){
+                            return 100;
+                        }
+                        else
+                        {
+                            return (viewportWidth/4)+100;
+                        }   
+                    })
+                    .attr("y",function(d,i){
+                        return viewportHeight/10+15;
+                    })
+                    .attr("text-anchor","middle")
+                    .attr("font-size",function(i){
+                        if (viewportHeight < 322 || viewportWidth < 400){
+                            return 0;
+                        }
+                        else{
+                            return fontSize;
+                        }
+                    })
+                    .style("fill","black")
 
-
-          
-         
-          this.verticalLine.selectAll("line")
-				.data(ratioArray)
-				.enter()
-					.append("line")                                     //Vertical lines
+            this.verticalLine.selectAll("line")                        //Draws Vertical lines
+                .data(viewModel.dataPoints)
+			    .enter()
+			        .append("line")                                     
 					.attr("x1",function(d,i){
-						if(i==0){
+					    if(i==0){
 							return initialOffset;                            
 						}
 						else{
 							var x0=initialOffset;
-							for(var j=1;j<=i;j++){
+							for(var j=0;j<i;j++){
 								 x0=x0+(ratioArray[j]*minPixels);
 							}
 							return x0;
-						}
-						
-                    })
+						}   
+					})
                     .attr("y1",options.viewport.height/1.5)
 					.attr("x2",function(d,i){
 						if(i==0){
@@ -251,139 +218,149 @@ module powerbi.extensibility.visual {
 						}
 						else{
 							var x0=initialOffset;
-							for(var j=1;j<=i;j++){
+							for(var j=0;j<i;j++){
 								 x0=x0+(ratioArray[j]*minPixels);
 							}
 							return x0;
-						}
-						
+					    }
 					})
                     .attr("y2", verticalLineHeight)
                     .style("stroke", lineColor)
                     .style("stroke-width", "4")
             
-                  
                     var event:string[];
                     var partEvent=[""];
                   
-            this.eventName.selectAll("text")
-                    .data(viewModel.dataPoints)
-                    .enter()
-                        .append("text")
-                    .text(function (d, i) {
+            this.eventName.selectAll("text")                           //Writes event names
+                .data(viewModel.dataPoints)
+                .enter()
+                    .append("text")
+                    .text(function (d, i){
                          event=d.event.split(" ");
-                        
-                            if(event.length>1){
-
-                                partEvent[i]=event[1];
-                                return event[0];
+                         if(event.length>1){
+                            partEvent[i]=event[1];
+                            return event[0];
+                         }
+                         else if(event.length<2){
+                            return d.event;
+                         }
+                    })
+                    .attr("x",function(d,i){
+                        if(i==0){
+                            return initialOffset;                            
+                        }
+                        else{
+                            var x0=initialOffset;
+                            for(var j=0;j<i;j++){
+                                x0=x0+(ratioArray[j]*minPixels);
                             }
-                            else if(event.length<2){
-                               
-                                return d.event;
+                            return x0;
+                        }
+                    })
+                    .attr("y",function(d,i){
+                        event=d.event.split(" ");
+                        if(event.length>1){
+                            return verticalLineHeight-35;
+                        }
+                        else if(event.length<2){
+                            return verticalLineHeight-5;
+                        }
+                    })
+                    .attr("text-anchor","middle")
+                    .attr("font-size",fontSize)
+                    .style("fill", textColors[0])
+                    .style("font-weight","bold")
+
+            this.secondEvent.selectAll("text")                         //Writes the second part of the longer event name
+                .data(partEvent)
+                .enter()
+                    .append("text")
+                    .text(function (d, i) {
+                        return partEvent[i];
+                    })
+                    .attr("x",function(d,i){
+                        if(i==0){
+                            return initialOffset;                            
+                        }
+                        else{
+                            var x0=initialOffset;
+                            for(var j=0;j<i;j++){
+                                x0=x0+(ratioArray[j]*minPixels);
                             }
-                        
-                        })
-                        .attr("x",function(d,i){
-                            if(i==0){
-                                return initialOffset;                            
+                            return x0;
+                        }
+                    })
+                    .attr("y",verticalLineHeight-5)
+                    .attr("text-anchor","middle")
+                    .attr("font-size",fontSize)
+                    .style("fill", textColors[0])
+                    .style("background", "red")
+                    .style("font-weight", "bold")
+
+            this.eventDate.selectAll("text")                           //Put the dates on the appropriate position
+                .data(viewModel.dataPoints)
+                .enter()
+                    .append("text")
+                    .text(function (d, i) {
+                        let tempDate:Date = new Date(d.timeStamp .toString());
+                        let minute=tempDate.getMinutes();
+                        let stringMinute="";
+                        if(minute==0){
+                            stringMinute="00";
+                        }
+                        else{
+                            stringMinute=minute.toString();
+                        }
+                        return  tempDate.getMonth()+1+"/"+tempDate.getDate()+ "/" + tempDate.getFullYear()+" "+tempDate.getHours()+":"+stringMinute;
+                    })
+                    .attr("x",function(d,i){
+                        if(i==0){
+                            return initialOffset;                            
+                        }
+                        else{
+                            var x0=initialOffset+10;
+                            for(var j=0;j<i;j++){
+                                x0=x0+(ratioArray[j]*minPixels);
                             }
-                            else{
-                                var x0=initialOffset;
-                                for(var j=1;j<=i;j++){
-                                     x0=x0+(ratioArray[j]*minPixels);
-                                }
-                                return x0;
-                            }
-                            
-                        })
-                        .attr("y",function(d,i){
-                            event=d.event.split(" ");
-                            
-                                if(event.length>1){
-                                  
-                                    return verticalLineHeight-35;
-                                }
-                                else if(event.length<2){
-                                    
-                                    return verticalLineHeight-5;
-                                }
-                        })//verticalLineHeight-35)
-                        .attr("text-anchor","middle")
-                        .attr("font-size",fontSize)
-                        .style("fill", colors[0])
-                        .style("background", "red")
-                        .style("font-weight","bold")
-                    
+                            return x0;
+                        }
+                    })
+                    .attr("y",(options.viewport.height/1.5)+25)
+                    .attr("text-anchor","middle")
+                    .attr("font-size", fontSize)
+                    .style("fill", textColors[1])
+        }
 
-                      this.secondEvent.selectAll("text")
-                        .data(partEvent)
-                        .enter()
-                            .append("text")
-                        .text(function (d, i) {
-                            
-                                return partEvent[i];
-                            })
-                            .attr("x",function(d,i){
-                                if(i==0){
-                                    return initialOffset;                            
-                                }
-                                else{
-                                    var x0=initialOffset;
-                                    for(var j=1;j<=i;j++){
-                                         x0=x0+(ratioArray[j]*minPixels);
-                                    }
-                                    return x0;
-                                }
-                                
-                            })
-                            .attr("y",verticalLineHeight-5)
-                            .attr("text-anchor","middle")
-                            .attr("font-size",fontSize)
-                            .style("fill", colors[0])
-                            .style("background", "red")
-                            .style("font-weight", "bold")
-                            
+        private getminimumPixels(width: number, ratioArray: number[], initialOffset): number {  //funtion to calculate pixels(width) of the smallest width between two vertical lines
+            var minPixels = width / ((ratioArray.length)/2);
+            var maxBoundary = (width - (initialOffset + 30));
+            var maxX = initialOffset;
+            var divisor = 0;
+            do {
+                maxX = initialOffset;
+                for (var j = 0; j < ratioArray.length; j++) {
 
+                    maxX = maxX + (ratioArray[j] * minPixels);
+                }
+                if (maxX > maxBoundary) {
+                    minPixels = width / (ratioArray.length + divisor);
+                    divisor = divisor + 0.1;
+                }
+            } while (maxX > maxBoundary && width>240); 
+            if (width < 250) {
+                return 0;
+            }
+            return minPixels;
+        }
 
-                this.eventDate.selectAll("text")
-                        .data(viewModel.dataPoints)
-                        .enter()
-                            .append("text")
-                            .text(function(d,i){
-                                let tempDate:Date = new Date(d.timeStamp .toString());
-                                let minute=tempDate.getMinutes();
-                                let stringMinute="";
-                                if(minute==0){
-                                    stringMinute="00";
-                                }
-                                else{
-                                    stringMinute=minute.toString();
-                                }
-                                return  tempDate.getMonth()+1+"/"+tempDate.getDate()+ "/" + tempDate.getFullYear()+" "+tempDate.getHours()+":"+stringMinute;
-                            })
-                            .attr("x",function(d,i){
-                                if(i==0){
-                                    return initialOffset;                            
-                                }
-                                else{
-                                    var x0=initialOffset+10;
-                                    for(var j=1;j<=i;j++){
-                                         x0=x0+(ratioArray[j]*minPixels);
-                                    }
-                                    return x0;
-                                }
-                                
-                            })
-                            .attr("y",(options.viewport.height/1.5)+25)
-                            .attr("text-anchor","middle")
-                            .attr("font-size", fontSize)//0.018 * options.viewport.width)
-                        
-                            .style("fill", colors[1])//"rgb(41, 130, 23)")
+        private removeElements() {                                     //function to remove the elements from the svg
 
-
-                        
-               
+            this.eventDate.selectAll("text").remove()
+            this.labelBoxes.selectAll("rect").remove()
+            this.labelText.selectAll("text").remove()
+            this.verticalLine.selectAll("line").remove()
+            this.eventName.selectAll("text").remove()
+            this.secondEvent.selectAll("text").remove()
         }
 
         private updateSettings(options: VisualUpdateOptions) {
