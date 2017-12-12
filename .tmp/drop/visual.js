@@ -10153,19 +10153,47 @@ var powerbi;
                                     color: {
                                         default: "#777777",
                                         value: "#777777"
-                                    } //,
+                                    },
+                                    fontFamily: {
+                                        default: "Arial",
+                                        value: "Arial"
+                                    },
+                                    fontSize: {
+                                        default: 20,
+                                        value: 20
+                                    }
                                 }
                             },
                             timestamps: {
                                 text: {
                                     color: {
-                                        default: "000000",
-                                        value: "000000"
+                                        default: "#000000",
+                                        value: "#000000"
+                                    },
+                                    fontFamily: {
+                                        default: "Arial",
+                                        value: "Arial"
+                                    },
+                                    fontSize: {
+                                        default: 20,
+                                        value: 20
                                     }
                                 }
                             },
-                            dataFont: {
+                            legend: {
                                 text: {
+                                    show: {
+                                        default: true,
+                                        value: true
+                                    },
+                                    color: {
+                                        default: "#000000",
+                                        value: "#000000"
+                                    },
+                                    fontFamily: {
+                                        default: "Arial",
+                                        value: "Arial"
+                                    },
                                     fontSize: {
                                         default: 20,
                                         value: 20
@@ -10174,8 +10202,8 @@ var powerbi;
                             }
                         };
                         var svg = this.svg = d3.select(options.element)
-                            .append("svg")
-                            .style("background", "rgb(249, 250, 252)");
+                            .append("svg");
+                        //.style("background", "rgb(249, 250, 252)")
                         //.style("border","2px black solid")
                         this.horizontalLine = svg.append("line")
                             .style("stroke-width", "6");
@@ -10212,11 +10240,18 @@ var powerbi;
                         var viewportHeight = options.viewport.height;
                         var verticalLineHeight = (viewportHeight / 1.5) - (viewportHeight / 3);
                         var initialOffset = 100;
-                        var fontSize = this.settings.dataFont.text.fontSize.value; /*this.settings.events.text.fontSize.value;*/ //0.02 * options.viewport.width;
+                        var eventsFontFam = this.settings.events.text.fontFamily.value;
+                        var eventsFontSize = this.settings.events.text.fontSize.value;
+                        var labelFontFam = this.settings.legend.text.fontFamily.value;
+                        var labelFontSize = this.settings.legend.text.fontSize.value;
+                        var timestampsFontFam = this.settings.timestamps.text.fontFamily.value;
+                        var timestampsFontSize = this.settings.timestamps.text.fontSize.value;
                         var totalElements = [1, 2];
                         var lineColor = this.settings.lineColor.line.color.value;
                         var textColors = [this.settings.events.text.color.value /*Event and related text*/, this.settings.timestamps.text.color.value /*Timestamp and related text*/];
                         var labelTexts = [options.dataViews[0].categorical.values[0].source.displayName, options.dataViews[0].categorical.categories[0].source.displayName];
+                        var labelShow = this.settings.legend.text.show.value;
+                        var labelTextColor = this.settings.legend.text.color.value;
                         var viewModel = this.getViewModel(options);
                         var ratioArray = this.getDateRatio(options);
                         var datesArray = options.dataViews[0].categorical.categories[0].values;
@@ -10231,39 +10266,44 @@ var powerbi;
                             .attr("x2", viewportWidth - 20)
                             .attr("y2", viewportHeight / 1.5)
                             .style("stroke", lineColor);
-                        this.labelBoxes.selectAll("rect") //Draws labelboxes
-                            .data(totalElements)
-                            .enter()
-                            .append("rect")
-                            .attr("x", function (d, i) {
-                            if (i == 0) {
-                                return 20;
-                            }
-                            else {
-                                return viewportWidth / 4;
-                            }
-                        })
-                            .attr("y", function (d, i) {
-                            return viewportHeight / 10;
-                        })
-                            .attr("height", function (i) {
-                            if (viewportHeight < 322 || viewportWidth < 400) {
-                                return 0;
-                            }
-                            else {
-                                return 15;
-                            }
-                        })
-                            .attr("width", 15)
-                            .style("fill", function (d, i) {
-                            return textColors[i];
-                        });
+                        if (labelShow == true) {
+                            this.labelBoxes.selectAll("rect") //Draws labelboxes
+                                .data(totalElements)
+                                .enter()
+                                .append("rect")
+                                .attr("x", function (d, i) {
+                                if (i == 0) {
+                                    return 20;
+                                }
+                                else {
+                                    return viewportWidth / 4;
+                                }
+                            })
+                                .attr("y", function (d, i) {
+                                return viewportHeight / 10;
+                            })
+                                .attr("height", function (i) {
+                                if (viewportHeight < 322 || viewportWidth < 400) {
+                                    return 0;
+                                }
+                                else {
+                                    return 15;
+                                }
+                            })
+                                .attr("width", 15)
+                                .style("fill", function (d, i) {
+                                return textColors[i];
+                            });
+                        }
                         this.labelText.selectAll("text") //Writes the text next to label boxes            
                             .data(totalElements)
                             .enter()
                             .append("text")
                             .text(function (d, i) {
-                            return labelTexts[i];
+                            if (labelShow == true)
+                                return labelTexts[i];
+                            else
+                                return null;
                         })
                             .attr("x", function (d, i) {
                             if (i == 0) {
@@ -10282,10 +10322,11 @@ var powerbi;
                                 return 0;
                             }
                             else {
-                                return fontSize;
+                                return labelFontSize;
                             }
                         })
-                            .style("fill", "black");
+                            .attr("font-family", labelFontFam)
+                            .style("fill", labelTextColor);
                         this.verticalLine.selectAll("line") //Draws Vertical lines
                             .data(viewModel.dataPoints)
                             .enter()
@@ -10356,7 +10397,8 @@ var powerbi;
                             }
                         })
                             .attr("text-anchor", "middle")
-                            .attr("font-size", fontSize)
+                            .attr("font-size", eventsFontSize)
+                            .attr("font-family", eventsFontFam)
                             .style("fill", textColors[0])
                             .style("font-weight", "bold");
                         this.secondEvent.selectAll("text") //Writes the second part of the longer event name
@@ -10380,7 +10422,8 @@ var powerbi;
                         })
                             .attr("y", verticalLineHeight - 5)
                             .attr("text-anchor", "middle")
-                            .attr("font-size", fontSize)
+                            .attr("font-size", eventsFontSize)
+                            .attr("font-family", eventsFontFam)
                             .style("fill", textColors[0])
                             .style("background", "red")
                             .style("font-weight", "bold");
@@ -10414,7 +10457,8 @@ var powerbi;
                         })
                             .attr("y", (options.viewport.height / 1.5) + 25)
                             .attr("text-anchor", "middle")
-                            .attr("font-size", fontSize)
+                            .attr("font-size", timestampsFontSize)
+                            .attr("font-family", timestampsFontFam)
                             .style("fill", textColors[1]);
                     };
                     Visual.prototype.getminimumPixels = function (width, ratioArray, initialOffset) {
@@ -10448,9 +10492,15 @@ var powerbi;
                     Visual.prototype.updateSettings = function (options) {
                         this.settings.lineColor.line.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "lineColor", propertyName: "color" }, this.settings.lineColor.line.color.default);
                         this.settings.events.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "events", propertyName: "color" }, this.settings.events.text.color.default);
-                        this.settings.dataFont.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "dataFont", propertyName: "fontSize" }, this.settings.dataFont.text.fontSize.default);
-                        //this.settings.events.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "events", propertyName: "fontSize" }, this.settings.events.text.fontSize.default);
+                        this.settings.events.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "events", propertyName: "fontSize" }, this.settings.events.text.fontSize.default);
+                        this.settings.events.text.fontFamily.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "events", propertyName: "fontFamily" }, this.settings.events.text.fontFamily.default);
                         this.settings.timestamps.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "timestamps", propertyName: "color" }, this.settings.timestamps.text.color.default);
+                        this.settings.timestamps.text.fontFamily.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "timestamps", propertyName: "fontFamily" }, this.settings.timestamps.text.fontFamily.value);
+                        this.settings.timestamps.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "timestamps", propertyName: "fontSize" }, this.settings.timestamps.text.fontSize.default);
+                        this.settings.legend.text.show.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "show" }, this.settings.legend.text.show.default);
+                        this.settings.legend.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "color" }, this.settings.legend.text.color.default);
+                        this.settings.legend.text.fontFamily.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "fontFamily" }, this.settings.legend.text.fontFamily.default);
+                        this.settings.legend.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "fontSize" }, this.settings.legend.text.fontSize.default);
                     };
                     Visual.prototype.getViewModel = function (options) {
                         var dv = options.dataViews;
@@ -10495,6 +10545,8 @@ var powerbi;
                                     objectName: propertyGroupName,
                                     properties: {
                                         color: this.settings.events.text.color.value,
+                                        fontFamily: this.settings.events.text.fontFamily.value,
+                                        fontSize: this.settings.events.text.fontSize.value
                                     },
                                     selector: null
                                 });
@@ -10503,16 +10555,21 @@ var powerbi;
                                 properties.push({
                                     objectName: propertyGroupName,
                                     properties: {
-                                        color: this.settings.timestamps.text.color.value
+                                        color: this.settings.timestamps.text.color.value,
+                                        fontFamily: this.settings.timestamps.text.fontFamily.value,
+                                        fontSize: this.settings.timestamps.text.fontSize.value
                                     },
                                     selector: null
                                 });
                                 break;
-                            case "dataFont":
+                            case "legend":
                                 properties.push({
                                     objectName: propertyGroupName,
                                     properties: {
-                                        fontSize: this.settings.dataFont.text.fontSize.value
+                                        show: this.settings.legend.text.show.value,
+                                        color: this.settings.legend.text.color.value,
+                                        fontFamily: this.settings.legend.text.fontFamily.value,
+                                        fontSize: this.settings.legend.text.fontSize.value
                                     },
                                     selector: null
                                 });

@@ -41,23 +41,47 @@ module powerbi.extensibility.visual {
                     color: {
                         default: "#777777",
                         value: "#777777"
-                    }//,
-                    //fontSize: {
-                    //    default: 20,
-                    //    value: 20
-                    //}
+                    },
+                    fontFamily: {
+                        default: "Arial",
+                        value: "Arial"
+                    },
+                    fontSize: {
+                        default: 20,
+                        value: 20
+                    }
                 }
             },
             timestamps: {
                 text: {
                     color: {
-                        default: "000000",
-                        value: "000000"
+                        default: "#000000",
+                        value: "#000000"
+                    },
+                    fontFamily: {
+                        default: "Arial",
+                        value: "Arial"
+                    },
+                    fontSize: {
+                        default: 20,
+                        value: 20
                     }
                 }
             },
-            dataFont: {
+            legend: {
                 text: {
+                    show: {
+                        default: true,
+                        value: true
+                    },
+                    color: {
+                        default: "#000000",
+                        value: "#000000"
+                    },
+                    fontFamily: {
+                        default: "Arial",
+                        value: "Arial"
+                    },
                     fontSize: {
                         default: 20,
                         value: 20
@@ -69,7 +93,7 @@ module powerbi.extensibility.visual {
         constructor(options: VisualConstructorOptions) {
 			let svg=this.svg=d3.select(options.element)
                 .append("svg")
-                .style("background", "rgb(249, 250, 252)")
+                //.style("background", "rgb(249, 250, 252)")
                 //.style("border","2px black solid")
 		    this.horizontalLine=svg.append("line")
             .style("stroke-width","6")
@@ -113,12 +137,19 @@ module powerbi.extensibility.visual {
             let viewportHeight=options.viewport.height;
             let verticalLineHeight = (viewportHeight / 1.5) - (viewportHeight/3);
             let initialOffset = 100;
-            let fontSize = this.settings.dataFont.text.fontSize.value;/*this.settings.events.text.fontSize.value;*/ //0.02 * options.viewport.width;
+            let eventsFontFam = this.settings.events.text.fontFamily.value;
+            let eventsFontSize = this.settings.events.text.fontSize.value;
+            let labelFontFam = this.settings.legend.text.fontFamily.value;
+            let labelFontSize = this.settings.legend.text.fontSize.value;
+            let timestampsFontFam = this.settings.timestamps.text.fontFamily.value;
+            let timestampsFontSize = this.settings.timestamps.text.fontSize.value;
             let totalElements = [1, 2];
             let lineColor = this.settings.lineColor.line.color.value;
             let textColors = [this.settings.events.text.color.value /*Event and related text*/, this.settings.timestamps.text.color.value /*Timestamp and related text*/];
-            let labelTexts=[options.dataViews[0].categorical.values[0].source.displayName ,options.dataViews[0].categorical.categories[0].source.displayName];
-        
+            let labelTexts = [options.dataViews[0].categorical.values[0].source.displayName, options.dataViews[0].categorical.categories[0].source.displayName];
+            let labelShow = this.settings.legend.text.show.value;
+            let labelTextColor = this.settings.legend.text.color.value;
+
             let viewModel = this.getViewModel(options);
             let ratioArray=this.getDateRatio(options);
             let datesArray = options.dataViews[0].categorical.categories[0].values;
@@ -135,42 +166,48 @@ module powerbi.extensibility.visual {
 			.attr("y1",viewportHeight/1.5)                              //Draws horizontal line
 			.attr("x2",viewportWidth-20)
             .attr("y2", viewportHeight / 1.5)
-            .style("stroke",lineColor);
+            .style("stroke", lineColor);
 
-            this.labelBoxes.selectAll("rect")                          //Draws labelboxes
-            .data(totalElements)
-            .enter()
+            if (labelShow == true) {
+                this.labelBoxes.selectAll("rect")                          //Draws labelboxes
+                    .data(totalElements)
+                    .enter()
                     .append("rect")
-                    .attr("x",function(d,i){
-                        if(i==0){
+                    .attr("x", function (d, i) {
+                        if (i == 0) {
                             return 20;
                         }
-                        else{
-                            return viewportWidth/4;
+                        else {
+                            return viewportWidth / 4;
                         }
                     })
-                    .attr("y",function(d,i){
-                        return viewportHeight/10;
+                    .attr("y", function (d, i) {
+                        return viewportHeight / 10;
                     })
-                    .attr("height",function(i){
-                        if(viewportHeight<322 || viewportWidth<400){
+                    .attr("height", function (i) {
+                        if (viewportHeight < 322 || viewportWidth < 400) {
                             return 0
                         }
-                        else{
+                        else {
                             return 15;
                         }
                     })
-                    .attr("width",15)
-                    .style("fill",function(d,i){
+                    .attr("width", 15)
+                    .style("fill", function (d, i) {
                         return textColors[i];
                     })
+            }
+            
             
             this.labelText.selectAll("text")                           //Writes the text next to label boxes            
                 .data(totalElements)
                 .enter()
                     .append("text")
-                    .text(function(d,i){
+                .text(function (d, i) {
+                    if (labelShow == true)
                         return labelTexts[i];
+                    else
+                        return null;
                     })
                     .attr("x",function(d,i){
                         if(i==0){
@@ -190,10 +227,11 @@ module powerbi.extensibility.visual {
                             return 0;
                         }
                         else{
-                            return fontSize;
+                            return labelFontSize;
                         }
                     })
-                    .style("fill","black")
+                    .attr("font-family", labelFontFam)
+                    .style("fill", labelTextColor)
 
             this.verticalLine.selectAll("line")                        //Draws Vertical lines
                 .data(viewModel.dataPoints)
@@ -267,7 +305,8 @@ module powerbi.extensibility.visual {
                         }
                     })
                     .attr("text-anchor","middle")
-                    .attr("font-size",fontSize)
+                    .attr("font-size",eventsFontSize)
+                    .attr("font-family", eventsFontFam)
                     .style("fill", textColors[0])
                     .style("font-weight","bold")
 
@@ -292,7 +331,8 @@ module powerbi.extensibility.visual {
                     })
                     .attr("y",verticalLineHeight-5)
                     .attr("text-anchor","middle")
-                    .attr("font-size",fontSize)
+                    .attr("font-size",eventsFontSize)
+                    .attr("font-family", eventsFontFam)
                     .style("fill", textColors[0])
                     .style("background", "red")
                     .style("font-weight", "bold")
@@ -327,7 +367,8 @@ module powerbi.extensibility.visual {
                     })
                     .attr("y",(options.viewport.height/1.5)+25)
                     .attr("text-anchor","middle")
-                    .attr("font-size", fontSize)
+                    .attr("font-size", timestampsFontSize)
+                    .attr("font-family", timestampsFontFam)
                     .style("fill", textColors[1])
         }
 
@@ -367,9 +408,16 @@ module powerbi.extensibility.visual {
 
             this.settings.lineColor.line.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "lineColor", propertyName: "color" }, this.settings.lineColor.line.color.default);
             this.settings.events.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "events", propertyName: "color" }, this.settings.events.text.color.default);
-            this.settings.dataFont.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "dataFont", propertyName: "fontSize" }, this.settings.dataFont.text.fontSize.default);
-            //this.settings.events.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "events", propertyName: "fontSize" }, this.settings.events.text.fontSize.default);
+            this.settings.events.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "events", propertyName: "fontSize" }, this.settings.events.text.fontSize.default);
+            this.settings.events.text.fontFamily.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "events", propertyName: "fontFamily" }, this.settings.events.text.fontFamily.default);
             this.settings.timestamps.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "timestamps", propertyName: "color" }, this.settings.timestamps.text.color.default);
+            this.settings.timestamps.text.fontFamily.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "timestamps", propertyName: "fontFamily" }, this.settings.timestamps.text.fontFamily.value);
+            this.settings.timestamps.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "timestamps", propertyName: "fontSize" }, this.settings.timestamps.text.fontSize.default);
+            this.settings.legend.text.show.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "show" }, this.settings.legend.text.show.default);
+            this.settings.legend.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "color" }, this.settings.legend.text.color.default);
+            this.settings.legend.text.fontFamily.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "fontFamily" }, this.settings.legend.text.fontFamily.default);
+            this.settings.legend.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "fontSize" }, this.settings.legend.text.fontSize.default);
+
         }
         
 
@@ -430,7 +478,8 @@ module powerbi.extensibility.visual {
                         objectName: propertyGroupName,
                         properties: {
                             color: this.settings.events.text.color.value,
-                            //fontSize: this.settings.events.text.fontSize.value
+                            fontFamily: this.settings.events.text.fontFamily.value,
+                            fontSize: this.settings.events.text.fontSize.value
                         },
                         selector: null
                     });
@@ -440,17 +489,22 @@ module powerbi.extensibility.visual {
                     properties.push({
                         objectName: propertyGroupName,
                         properties: {
-                            color: this.settings.timestamps.text.color.value
+                            color: this.settings.timestamps.text.color.value,
+                            fontFamily: this.settings.timestamps.text.fontFamily.value,
+                            fontSize: this.settings.timestamps.text.fontSize.value
                         },
                         selector: null
                     });
                     break;
 
-                case "dataFont":
+                case "legend":
                     properties.push({
                         objectName: propertyGroupName,
                         properties: {
-                            fontSize: this.settings.dataFont.text.fontSize.value
+                            show: this.settings.legend.text.show.value,
+                            color: this.settings.legend.text.color.value,
+                            fontFamily: this.settings.legend.text.fontFamily.value,
+                            fontSize: this.settings.legend.text.fontSize.value
                         },
                         selector: null
                     });
