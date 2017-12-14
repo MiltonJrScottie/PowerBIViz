@@ -10199,6 +10199,26 @@ var powerbi;
                                         value: 20
                                     }
                                 }
+                            },
+                            difference: {
+                                text: {
+                                    show: {
+                                        default: true,
+                                        value: true
+                                    },
+                                    color: {
+                                        default: "#000000",
+                                        value: "#000000"
+                                    },
+                                    fontFamily: {
+                                        default: "Arial",
+                                        value: "Arial"
+                                    },
+                                    fontSize: {
+                                        default: 20,
+                                        value: 20
+                                    }
+                                }
                             }
                         };
                         var svg = this.svg = d3.select(options.element)
@@ -10259,6 +10279,10 @@ var powerbi;
                         var labelFontSize = this.settings.legend.text.fontSize.value;
                         var timestampsFontFam = this.settings.timestamps.text.fontFamily.value;
                         var timestampsFontSize = this.settings.timestamps.text.fontSize.value;
+                        var differenceFontFam = this.settings.difference.text.fontFamily.value;
+                        var differenceFontSize = this.settings.difference.text.fontSize.value;
+                        var differenceTextColor = this.settings.difference.text.color.value;
+                        var differenceShow = this.settings.difference.text.show.value;
                         var totalElements = [1, 2];
                         var lineColor = this.settings.lineColor.line.color.value;
                         var textColors = [this.settings.events.text.color.value /*Event and related text*/, this.settings.timestamps.text.color.value /*Timestamp and related text*/];
@@ -10308,6 +10332,37 @@ var powerbi;
                                 .style("fill", function (d, i) {
                                 return textColors[i];
                             });
+                            this.labelText.selectAll("text") //Writes the text next to label boxes            
+                                .data(totalElements)
+                                .enter()
+                                .append("text")
+                                .text(function (d, i) {
+                                return labelTexts[i];
+                            })
+                                .attr("x", function (d, i) {
+                                if (i == 0) {
+                                    return 100;
+                                }
+                                else {
+                                    return (viewportWidth / 4) + 100;
+                                }
+                            })
+                                .attr("y", function (d, i) {
+                                return viewportHeight / 10 + 15;
+                            })
+                                .attr("text-anchor", "middle")
+                                .attr("font-size", function (i) {
+                                if (viewportHeight < 322 || viewportWidth < 400) {
+                                    return 0;
+                                }
+                                else {
+                                    return labelFontSize;
+                                }
+                            })
+                                .attr("font-family", labelFontFam)
+                                .style("fill", labelTextColor);
+                        }
+                        if (differenceShow == true) {
                             var unit_1 = "";
                             this.showDifferences.selectAll("text") //Writes event names
                                 .data(difference)
@@ -10381,39 +10436,10 @@ var powerbi;
                                 return (options.viewport.height / 1.5 + verticalLineHeight) / 2;
                             })
                                 .attr("text-anchor", "middle")
-                                .attr("font-size", labelFontSize)
-                                .attr("font-family", labelFontFam)
-                                .style("fill", labelTextColor)
+                                .attr("font-size", differenceFontSize)
+                                .attr("font-family", differenceFontFam)
+                                .style("fill", differenceTextColor)
                                 .style("font-weight", "bold");
-                            this.labelText.selectAll("text") //Writes the text next to label boxes            
-                                .data(totalElements)
-                                .enter()
-                                .append("text")
-                                .text(function (d, i) {
-                                return labelTexts[i];
-                            })
-                                .attr("x", function (d, i) {
-                                if (i == 0) {
-                                    return 100;
-                                }
-                                else {
-                                    return (viewportWidth / 4) + 100;
-                                }
-                            })
-                                .attr("y", function (d, i) {
-                                return viewportHeight / 10 + 15;
-                            })
-                                .attr("text-anchor", "middle")
-                                .attr("font-size", function (i) {
-                                if (viewportHeight < 322 || viewportWidth < 400) {
-                                    return 0;
-                                }
-                                else {
-                                    return labelFontSize;
-                                }
-                            })
-                                .attr("font-family", labelFontFam)
-                                .style("fill", labelTextColor);
                         }
                         this.verticalLine.selectAll("line") //Draws Vertical lines
                             .data(viewModel.dataPoints)
@@ -10590,6 +10616,10 @@ var powerbi;
                         this.settings.legend.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "color" }, this.settings.legend.text.color.default);
                         this.settings.legend.text.fontFamily.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "fontFamily" }, this.settings.legend.text.fontFamily.default);
                         this.settings.legend.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "fontSize" }, this.settings.legend.text.fontSize.default);
+                        this.settings.difference.text.show.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "difference", propertyName: "show" }, this.settings.difference.text.show.default);
+                        this.settings.difference.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "difference", propertyName: "color" }, this.settings.difference.text.color.default);
+                        this.settings.difference.text.fontFamily.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "difference", propertyName: "fontFamily" }, this.settings.difference.text.fontFamily.default);
+                        this.settings.difference.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "difference", propertyName: "fontSize" }, this.settings.difference.text.fontSize.default);
                     };
                     Visual.prototype.getViewModel = function (options) {
                         var dv = options.dataViews;
@@ -10659,6 +10689,18 @@ var powerbi;
                                         color: this.settings.legend.text.color.value,
                                         fontFamily: this.settings.legend.text.fontFamily.value,
                                         fontSize: this.settings.legend.text.fontSize.value
+                                    },
+                                    selector: null
+                                });
+                                break;
+                            case "difference":
+                                properties.push({
+                                    objectName: propertyGroupName,
+                                    properties: {
+                                        show: this.settings.difference.text.show.value,
+                                        color: this.settings.difference.text.color.value,
+                                        fontFamily: this.settings.difference.text.fontFamily.value,
+                                        fontSize: this.settings.difference.text.fontSize.value
                                     },
                                     selector: null
                                 });

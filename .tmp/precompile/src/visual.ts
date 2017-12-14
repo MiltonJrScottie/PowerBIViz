@@ -88,6 +88,26 @@ module powerbi.extensibility.visual.powerBIVisual1D28CB10BD8040A98F545F6699A510D
                         value: 20
                     }
                 }
+            },
+            difference: {
+                text: {
+                    show: {
+                        default: true,
+                        value: true
+                    },
+                    color: {
+                        default: "#000000",
+                        value: "#000000"
+                    },
+                    fontFamily: {
+                        default: "Arial",
+                        value: "Arial"
+                    },
+                    fontSize: {
+                        default: 20,
+                        value: 20
+                    }
+                }
             }
         }
 
@@ -157,6 +177,10 @@ module powerbi.extensibility.visual.powerBIVisual1D28CB10BD8040A98F545F6699A510D
             let labelFontSize = this.settings.legend.text.fontSize.value;
             let timestampsFontFam = this.settings.timestamps.text.fontFamily.value;
             let timestampsFontSize = this.settings.timestamps.text.fontSize.value;
+            let differenceFontFam = this.settings.difference.text.fontFamily.value;
+            let differenceFontSize = this.settings.difference.text.fontSize.value;
+            let differenceTextColor = this.settings.difference.text.color.value;
+            let differenceShow = this.settings.difference.text.show.value;
             let totalElements = [1, 2];
             let lineColor = this.settings.lineColor.line.color.value;
             let textColors = [this.settings.events.text.color.value /*Event and related text*/, this.settings.timestamps.text.color.value /*Timestamp and related text*/];
@@ -211,84 +235,6 @@ module powerbi.extensibility.visual.powerBIVisual1D28CB10BD8040A98F545F6699A510D
                     .style("fill", function (d, i) {
                         return textColors[i];
                     })
-                
-                let unit="";
-                this.showDifferences.selectAll("text")                           //Writes event names
-                    .data(difference)
-                    .enter()
-                        .append("text")
-                        .text(function (d, i){
-                            let diff=difference[i];
-                            if(i==0){
-                                let minimumDiff=d3.min(difference);
-                                let maximumDiff=d3.max(difference);
-                                if(minimumDiff>719){
-                                    unit="months";
-                                }
-                                else if(minimumDiff>24){
-                                    unit="days";
-                                }
-                                else if(maximumDiff<24){
-                                    if(minimumDiff>1){
-                                        unit="hours";
-                                    }
-                                    else{
-                                        unit="minutes";
-                                    }
-                                }
-                                else if(maximumDiff<1){
-                                    if(minimumDiff>0.01){
-                                        unit="minutes"
-                                    }
-                                }
-                                else{
-                                    unit="seconds";
-                                }
-                            }
-                            if (unit=="months"){
-                                var count=0;
-                                while(diff>720){
-                                    diff=diff-720;
-                                    count++;
-                                }
-                                if(count<=1)
-                                return count+" month";
-                                else
-                                return count+" months";
-                             }
-                            if (unit=="days"){
-                                var count=0;
-                                while(diff>24){
-                                    diff=diff-24;
-                                    count++;
-                                }
-                                if(count<=1)
-                                return count+" day";
-                                else
-                                return count+" days";
-                             }
-                           // return difference[i];
-                        })
-                        .attr("x",function(d,i){
-                            if(i==0){
-                                return initialOffset+50;                            
-                            }
-                            else{
-                                var x0=initialOffset;
-                                for(var j=0;j<i;j++){
-                                    x0=x0+(ratioArray[j]*minPixels);
-                                }
-                                return x0+50;
-                            }
-                        })
-                        .attr("y",function(d,i){
-                                return (options.viewport.height/1.5+verticalLineHeight)/2;   
-                        })
-                        .attr("text-anchor","middle")
-                        .attr("font-size",labelFontSize)
-                        .attr("font-family", labelFontFam)
-                        .style("fill", labelTextColor)
-                        .style("font-weight","bold")
 
                     this.labelText.selectAll("text")                           //Writes the text next to label boxes            
                         .data(totalElements)
@@ -320,6 +266,86 @@ module powerbi.extensibility.visual.powerBIVisual1D28CB10BD8040A98F545F6699A510D
                             })
                             .attr("font-family", labelFontFam)
                             .style("fill", labelTextColor)
+            }
+
+            if (differenceShow == true) {
+                let unit = "";
+                this.showDifferences.selectAll("text")                           //Writes event names
+                    .data(difference)
+                    .enter()
+                    .append("text")
+                    .text(function (d, i) {
+                        let diff = difference[i];
+                        if (i == 0) {
+                            let minimumDiff = d3.min(difference);
+                            let maximumDiff = d3.max(difference);
+                            if (minimumDiff > 719) {
+                                unit = "months";
+                            }
+                            else if (minimumDiff > 24) {
+                                unit = "days";
+                            }
+                            else if (maximumDiff < 24) {
+                                if (minimumDiff > 1) {
+                                    unit = "hours";
+                                }
+                                else {
+                                    unit = "minutes";
+                                }
+                            }
+                            else if (maximumDiff < 1) {
+                                if (minimumDiff > 0.01) {
+                                    unit = "minutes"
+                                }
+                            }
+                            else {
+                                unit = "seconds";
+                            }
+                        }
+                        if (unit == "months") {
+                            var count = 0;
+                            while (diff > 720) {
+                                diff = diff - 720;
+                                count++;
+                            }
+                            if (count <= 1)
+                                return count + " month";
+                            else
+                                return count + " months";
+                        }
+                        if (unit == "days") {
+                            var count = 0;
+                            while (diff > 24) {
+                                diff = diff - 24;
+                                count++;
+                            }
+                            if (count <= 1)
+                                return count + " day";
+                            else
+                                return count + " days";
+                        }
+                        // return difference[i];
+                    })
+                    .attr("x", function (d, i) {
+                        if (i == 0) {
+                            return initialOffset + 50;
+                        }
+                        else {
+                            var x0 = initialOffset;
+                            for (var j = 0; j < i; j++) {
+                                x0 = x0 + (ratioArray[j] * minPixels);
+                            }
+                            return x0 + 50;
+                        }
+                    })
+                    .attr("y", function (d, i) {
+                        return (options.viewport.height / 1.5 + verticalLineHeight) / 2;
+                    })
+                    .attr("text-anchor", "middle")
+                    .attr("font-size", differenceFontSize)
+                    .attr("font-family", differenceFontFam)
+                    .style("fill", differenceTextColor)
+                    .style("font-weight", "bold")
             }
             
             this.verticalLine.selectAll("line")                        //Draws Vertical lines
@@ -507,6 +533,10 @@ module powerbi.extensibility.visual.powerBIVisual1D28CB10BD8040A98F545F6699A510D
             this.settings.legend.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "color" }, this.settings.legend.text.color.default);
             this.settings.legend.text.fontFamily.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "fontFamily" }, this.settings.legend.text.fontFamily.default);
             this.settings.legend.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "legend", propertyName: "fontSize" }, this.settings.legend.text.fontSize.default);
+            this.settings.difference.text.show.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "difference", propertyName: "show" }, this.settings.difference.text.show.default);
+            this.settings.difference.text.color.value = DataViewObjects.getFillColor(options.dataViews[0].metadata.objects, { objectName: "difference", propertyName: "color" }, this.settings.difference.text.color.default);
+            this.settings.difference.text.fontFamily.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "difference", propertyName: "fontFamily" }, this.settings.difference.text.fontFamily.default);
+            this.settings.difference.text.fontSize.value = DataViewObjects.getValue(options.dataViews[0].metadata.objects, { objectName: "difference", propertyName: "fontSize" }, this.settings.difference.text.fontSize.default);
 
         }
         
@@ -595,6 +625,19 @@ module powerbi.extensibility.visual.powerBIVisual1D28CB10BD8040A98F545F6699A510D
                             color: this.settings.legend.text.color.value,
                             fontFamily: this.settings.legend.text.fontFamily.value,
                             fontSize: this.settings.legend.text.fontSize.value
+                        },
+                        selector: null
+                    });
+                    break;
+
+                case "difference":
+                    properties.push({
+                        objectName: propertyGroupName,
+                        properties: {
+                            show: this.settings.difference.text.show.value,
+                            color: this.settings.difference.text.color.value,
+                            fontFamily: this.settings.difference.text.fontFamily.value,
+                            fontSize: this.settings.difference.text.fontSize.value
                         },
                         selector: null
                     });
